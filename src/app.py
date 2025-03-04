@@ -1,12 +1,15 @@
-from typing import Union
 from fastapi import FastAPI
+from routers import organization, transaction, log, locker, locker_manager, locker_website
 
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+app.include_router(organization.router)
+app.include_router(transaction.router)
+app.include_router(log.router)
+app.include_router(locker.router)
+app.include_router(locker_manager.router)
+app.include_router(locker_website.router)
 
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
+@app.get("/")
+def root():
+    return {"message": "Locker System API is running"}
