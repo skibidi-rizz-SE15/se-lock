@@ -51,6 +51,18 @@ class SlavePiPhysical:
         self._transmit_data(self._create_framed_log_str('LOCK', actor))
         self.play_buzzer(100)  # Activate buzzer for 100ms
         print("Locker locked.")
+        
+    def _create_framed_log_str(self, action, actor):
+        """
+        Creates a JSON string with the action and actor information, framed by ";;;" delimiters.
+        """
+        log_data = {
+            'action': action,
+            'actor': actor,
+            'locker_id': self.locker_id,
+            'timestamp': utime.localtime()
+        }
+        return json.dumps(log_data)
     
     def setup_sensor_and_physical_output(self):
         self.feedbackSW = Pin(self.FEEDBACK_SW_PIN, Pin.IN)        
@@ -64,6 +76,7 @@ class SlavePiPhysical:
         self.uart = UART(0, baudrate=9600)
         self.RTen_pin.value(self.RECEIVE)
         self.uart.init(9600)
+        self.uart_buffer = ""
         
     def _transmit_data(self, data):
         """
@@ -72,6 +85,7 @@ class SlavePiPhysical:
         framed_data = ';;;' + data + ';;;'
         self.RTen_pin.value(self.TRANSMIT)
         self.uart.write(framed_data.encode())
+        print(f"Slave send data: {framed_data}")
         self.uart.flush()
         utime.sleep(1)
         self.RTen_pin.value(self.RECEIVE)
@@ -83,18 +97,25 @@ class SlavePiPhysical:
         by ";;;" at the beginning and end. The method decodes the JSON payload and,
         if the 'assign_to' field matches the local locker ID, processes the command.
         """
+        utime.sleep(0.2)
         if self.uart.any():
             try:
-                data = self.uart.read().decode().strip()
+                data = self.uart.readline().decode().strip()
+                self.uart_buffer += data
+                print(f"data in uart: {data}")
             except Exception as e:
                 print("UART read error:", e)
                 return
             if data.startswith(';;;') and data.endswith(';;;'):
+                group_of_data = self.uart_buffer.split(';;;')
+                data = group_of_data[1]  # Extract the JSON part
+                self.uart_buffer = ""  # Clear the buffer after reading
                 # Remove the framing delimiters.
-                data = data[3:-3]
                 try:
                     json_data = ujson.loads(data)
                     if json_data.get('assign_to') == self.locker_id:
+                        if json_data["action"] == "ACK":
+                            return
                         self._operate_command(json_data)
                     else:
                         print("Received command not intended for this locker.")
@@ -127,10 +148,9 @@ class SlavePiPhysical:
         self.SW_feedback_current_state = self.feedbackSW.value()
         if self.SW_feedback_prev_state != self.SW_feedback_current_state:
             if self.SW_feedback_prev_state == self.OPEN and self.SW_feedback_current_state == self.CLOSED:
-                self._set_locker_state(self.CLOSED, 'Developper')
-                self._record_action('CLOSED', 'Developper')
-            else:
-                self._record_action('OPEN', 'Developper')
+                self.lock('Developper')
+                print("Feedback switch state changed to CLOSED.")
+                self.play_buzzer(100)  # Activate buzzer for 100ms
                 
     def main_loop(self):
         """
@@ -140,3 +160,10 @@ class SlavePiPhysical:
             self._receive_data()
             self._update_SW_feedback()
             utime.sleep(0.1)
+            
+slave = SlavePiPhysical()
+slave.unlock('Test Actor')
+utime.sleep(2)
+slave.lock('Test Actor')
+slave.main_loop()
+

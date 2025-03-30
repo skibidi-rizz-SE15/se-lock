@@ -4,6 +4,7 @@ import json
 import datetime
 from cryptography.fernet import Fernet
 import base64
+import hashlib
 
 class QRManager:
     def __init__(self, key_file):
@@ -11,6 +12,7 @@ class QRManager:
         self.cipher = Fernet(self.key)
         self.qrDecoder = cv2.QRCodeDetector()
         self.camera = None
+        self.qr_log = None
         
     def extract_qr(self, qr_code: str):
         """
@@ -36,6 +38,7 @@ class QRManager:
         :param qr_code: The encrypted QR code as a string.
         :return: The decrypted JSON payload if the QR code is valid and within the time range, else None.
         """
+        print(qr_code)
         payload = self.extract_qr(qr_code)
         if payload is None:
             print("Failed to extract QR data")
@@ -61,17 +64,17 @@ class QRManager:
         
     
     def process_camera(self):
-        if self.cap:
+        if self.camera:
             data = self._read_qr_code()
             if data:
                 self.open(data)
             self._display_camera_feed()
             
     def _display_camera_feed(self):
-        ret, frame = self.cap.read()
+        ret, frame = self.camera.read()
         if ret:
             # Overlay the latest log message on the frame
-            cv2.putText(frame, self.latest_log, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.putText(frame, self.qr_log, (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
                         0.8, (0, 255, 0), 2, cv2.LINE_AA)
             cv2.imshow("Camera", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -79,30 +82,35 @@ class QRManager:
     
     def _read_key(self, key_file):
         """
-        Reads and prepares the encryption key from the key file.
+        Reads a key from a file, ensures it is properly formatted for Fernet encryption.
         """
         with open(key_file, 'rb') as kf:
-            key = kf.read().strip()
-        # Ensure proper padding for base64 decoding
-        missing_padding = len(key) % 4
-        if missing_padding:
-            key += b'=' * (4 - missing_padding)
-        try:
-            key = base64.urlsafe_b64decode(key)
-            key = base64.urlsafe_b64encode(key)
-        except Exception as e:
-            print("Error decoding key:", e)
-            raise ValueError("Invalid key format")
-        return key
+            key = kf.read().strip()  # Read the key as bytes
+
+        # Hash the key to ensure it's exactly 32 bytes
+        hashed_key = hashlib.sha256(key).digest()[:32]  # No need for .encode()
+
+        # Encode to URL-safe base64
+        encoded_key = base64.urlsafe_b64encode(hashed_key)
+        return encoded_key
     
             
     def _read_qr_code(self):
-        if self.cap is None:
+        if self.camera is None:
             print("Camera is not activated")
             return None
-        ret, frame = self.cap.read()
+        ret, frame = self.camera.read()
         if not ret:
             print("Failed to grab frame")
             return None
         data, _, _ = self.qrDecoder.detectAndDecode(frame)
         return data
+    
+    def _activate_camera(self):
+        if self.camera is None:
+            self.camera = cv2.VideoCapture(0)
+            if not self.camera.isOpened():
+                print("Cannot open camera")
+                self.camera = None
+            else:
+                print("Camera activated")

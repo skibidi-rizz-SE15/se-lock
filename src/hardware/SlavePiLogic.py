@@ -11,10 +11,13 @@ class SlavePiLogic:
     TRANSMITTER = 1
     RECEIVER = 0
     
+    RS485_MODE_PIN = 5
+    
     
     def __init__(self, slave_pi_physical_id):
         self._init_communication()
-        self.slave_id = self._test_connecting(slave_pi_physical_id)
+        self.slave_id = slave_pi_physical_id
+        self._test_connecting(slave_pi_physical_id)
     
     def open(self, actor):
         """
@@ -25,13 +28,13 @@ class SlavePiLogic:
             dict: The response data received from the hardware, parsed as JSON.
         Behavior:
             - Continuously transmits the "UNLOCK" command to the hardware.
-            - Waits for a response within a specified timeout period (`WAITING_TIME_MILLISECONDS`).
-            - Sends an acknowledgment (`send_ack`) upon receiving a valid response.
+            - Waits for a response within a specified timeout period (WAITING_TIME_MILLISECONDS).
+            - Sends an acknowledgment (send_ack) upon receiving a valid response.
             - Retries the process if no response is received within the timeout period.
-            - Introduces a delay (`DELAY_HARDWARE_COMMAND_MILLISECONDS`) between retries.
+            - Introduces a delay (DELAY_HARDWARE_COMMAND_MILLISECONDS) between retries.
         Raises:
             None: This method does not explicitly raise exceptions but may propagate exceptions
-            from `_transmit_data`, `_receive_data`, or `send_ack` if they occur.
+            from _transmit_data, _receive_data, or send_ack if they occur.
         """
         start_time = datetime.datetime.now()
         while True:
@@ -67,6 +70,7 @@ class SlavePiLogic:
             print("Error initializing serial communication:", e)
             self.ser = None
         self.pi = pigpio.pi("localhost", 8888)
+        self.rs485_mode_pin = self.RS485_MODE_PIN
         self.pi.set_mode(self.rs485_mode_pin, pigpio.OUTPUT)
         self.pi.write(self.rs485_mode_pin, self.RECEIVER)
     
@@ -77,7 +81,7 @@ class SlavePiLogic:
             command (str): The command to be transmitted.
             actor (str, optional): The entity initiating the command. Defaults to "Developer".
         Attributes:
-            from_slave_id (str): The identifier of the slave device, retrieved from the instance attribute `slave_id`.
+            from_slave_id (str): The identifier of the slave device, retrieved from the instance attribute slave_id.
             command (str): The command to be sent.
             actor (str): The entity initiating the command.
             timestamp (str): The ISO 8601 formatted timestamp of when the command is sent.
@@ -88,12 +92,12 @@ class SlavePiLogic:
             - Prints the transmitted message or an error if the serial interface is not initialized.
             - Introduces a delay after transmission to ensure hardware stability.
         Note:
-            The method assumes the presence of instance attributes `ser`, `pi`, `rs485_mode_pin`, 
-            `TRANSMITTER`, `RECEIVER`, and `DELAY_HARDWARE_COMMAND_MILLISECONDS`.
+            The method assumes the presence of instance attributes ser, pi, rs485_mode_pin, 
+            TRANSMITTER, RECEIVER, and DELAY_HARDWARE_COMMAND_MILLISECONDS.
         """
         data = {
-            "from_slave_id": getattr(self, 'slave_id', None),
-            "command": command,
+            "assign_to": getattr(self, 'slave_id', None),
+            "action": command,
             "actor": actor,
             "timestamp": datetime.datetime.now().isoformat()
         }
@@ -149,6 +153,6 @@ class SlavePiLogic:
             ValueError: If the connection to the slave device fails.
         """
         log = self.open("Developer")
-        if log['actor'] == "Developer" and log['command'] == "UNLOCK":
+        if log['actor'] == "Developer" and log['action'] == "UNLOCK":
             return slave_pi_physical_id
         raise ValueError("Failed to connect to the slave device")
