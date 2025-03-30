@@ -15,7 +15,7 @@ class MasterPi(QRManager):
             if slave.slave_id == payload['locker_id']:
                 log = slave.open(payload['actor'])
                 # send MQTT message to server
-                self.send_log_to_server()
+                self.send_log_to_server("test")
             
     def send_log_to_server(self, log):
         pass

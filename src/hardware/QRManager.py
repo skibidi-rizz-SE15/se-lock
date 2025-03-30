@@ -48,9 +48,9 @@ class QRManager:
                 raise ValueError("QR code is missing required fields: 'locker_id', 'actor', or 'request_id'")
 
         try:
-            if "start_time" in payload and "end_time" in payload:
-                start_time = datetime.datetime.fromisoformat(payload["start_time"])
-                end_time = datetime.datetime.fromisoformat(payload["end_time"])
+            if "start_date" in payload and "end_date" in payload:
+                start_time = datetime.datetime.fromisoformat(payload["start_date"])
+                end_time = datetime.datetime.fromisoformat(payload["end_date"])
                 now = datetime.datetime.now()
                 if start_time <= now <= end_time:
                     return payload
