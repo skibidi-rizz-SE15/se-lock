@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+</head>
+<body>
+    <h2>Generate QR Code</h2>
+    <form id="qrForm" action="/" method="post">
+        <label>Start Date:</label>
+        <input type="date" name="start_date" required><br>
+
+        <label>End Date:</label>
+        <input type="date" name="end_date" required><br>
+
+        <label>Username:</label>
+        <input type="text" name="username" required><br>
+
+        <label>Locker ID:</label>
+        <input type="text" name="locker_id" required><br>
+
+        <button type="submit">Generate QR</button>
+    </form>
+
+    <h3>QR Code:</h3>
+    <div id="qr_code">
+        {% if qr_code %}
+            <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+        {% endif %}
+    </div>
+</body>
+</html>
