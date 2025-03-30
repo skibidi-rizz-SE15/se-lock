@@ -24,11 +24,11 @@ class MasterPi(QRManager):
         # Main loop for the MasterPi
         while True:
             self.process_camera()
-            ## Check for QR codes and process them
-            #qr_code = self._read_qr_code()
-            #if qr_code:
-            #    self.open(qr_code)
-            ## Add any other necessary logic here, such as checking for new slaves or handling other events
+            for slave in self.slave_pi_logic:
+                log = slave._receive_data()
+                if log:
+                    slave.send_ack()
+        
             
 master = MasterPi()
 master.slave_pi_logic.append(SlavePiLogic("1212312121"))  # Example of adding a slave

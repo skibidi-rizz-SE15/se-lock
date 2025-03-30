@@ -13,6 +13,7 @@ class QRManager:
         self.qrDecoder = cv2.QRCodeDetector()
         self.camera = None
         self.qr_log = None
+        self.latest_qr = None
         
     def extract_qr(self, qr_code: str):
         """
@@ -67,6 +68,9 @@ class QRManager:
         if self.camera:
             data = self._read_qr_code()
             if data:
+                if data == self.latest_qr:
+                    return
+                self.latest_qr = data
                 self.open(data)
             self._display_camera_feed()
             
