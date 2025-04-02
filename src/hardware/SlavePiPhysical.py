@@ -106,21 +106,24 @@ class SlavePiPhysical:
             except Exception as e:
                 print("UART read error:", e)
                 return
-            if data.startswith(';;;') and data.endswith(';;;'):
+            print(f"uart buffer: {self.uart_buffer}")
+            if self.uart_buffer.startswith(';;;') and self.uart_buffer.endswith(';;;'):
                 group_of_data = self.uart_buffer.split(';;;')
-                data = group_of_data[1]  # Extract the JSON part
+                print(f"data in group_of_data: {group_of_data}")
+                data = group_of_data[1:-1]  # Extract the JSON part
                 self.uart_buffer = ""  # Clear the buffer after reading
                 # Remove the framing delimiters.
-                try:
-                    json_data = ujson.loads(data)
-                    if json_data.get('assign_to') == self.locker_id:
-                        if json_data["action"] == "ACK":
-                            return
-                        self._operate_command(json_data)
-                    else:
-                        print("Received command not intended for this locker.")
-                except Exception as e:
-                    print("Error processing received data:", e)
+                for command in data:
+                    try:
+                        json_data = ujson.loads(command)
+                        if json_data.get('assign_to') == self.locker_id:
+                            if json_data["action"] == "ACK":
+                                continue
+                            self._operate_command(json_data)
+                        else:
+                            print("Received command not intended for this locker.")
+                    except Exception as e:
+                        print("Error processing received data:", e)
 
     
     def _operate_command(self, command):
@@ -166,4 +169,5 @@ slave.unlock('Test Actor')
 utime.sleep(2)
 slave.lock('Test Actor')
 slave.main_loop()
+
 

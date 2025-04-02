@@ -67,12 +67,14 @@ class QRManager:
     def process_camera(self):
         if self.camera:
             data = self._read_qr_code()
+            print(f"data: {data} \n latest_qr: {self.latest_qr}")
             if data:
                 if data == self.latest_qr:
+                    print("It same qr as previous frame")
                     return
-                self.latest_qr = data
                 self.open(data)
             self._display_camera_feed()
+            self.latest_qr = data
             
     def _display_camera_feed(self):
         ret, frame = self.camera.read()

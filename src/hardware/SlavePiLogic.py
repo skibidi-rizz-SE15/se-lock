@@ -152,7 +152,8 @@ class SlavePiLogic:
         Raises:
             ValueError: If the connection to the slave device fails.
         """
-        log = self.open("Developer")
-        if log['actor'] == "Developer" and log['action'] == "UNLOCK":
-            return slave_pi_physical_id
+        #log = self.open("Developer")
+        #if log['actor'] == "Developer" and log['action'] == "UNLOCK":
+        #    return slave_pi_physical_id
+        return slave_pi_physical_id
         raise ValueError("Failed to connect to the slave device")
